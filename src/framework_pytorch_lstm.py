@@ -59,6 +59,7 @@ class LSTMPredictor(nn.Module):
                 in_features=hidden_size_for_lstm,
                 out_features=internal_hidden_dimension
             ),
+            nn.ReLU(),
             nn.Linear(
                 in_features=internal_hidden_dimension,
                 out_features=output_size

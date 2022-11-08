@@ -118,6 +118,7 @@ class TimeSeriesDataSet:
 
     def split_to_train_and_test(self, length_to_predict):
         """
+        not the usual train and test split!!!!
         according to an input, length to predict, we split the entire data set to train set and test set.
         The test set will be the same as the dataset in self. The train set will have the same amount of samples,
         but they will be shorter samples with their "tips" cut off.
