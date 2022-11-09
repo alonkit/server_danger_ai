@@ -1,9 +1,9 @@
 name: server_danger
 channels:
 - conda-forge
-- pytorch
 dependencies:
 - python
+- jupyter
 - jupyterlab
 - pytorch::pytorch
 - sktime

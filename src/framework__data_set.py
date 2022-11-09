@@ -168,6 +168,7 @@ def __get_names_of_relevant_files(metric, path_to_data):
     @return: a list of the files that contain the specified from each json file in the directory specified
     """
     list_of_files = __get_names_of_json_files_in_directory(path_to_data)
+    print(list_of_files)
     relevant_files = [file for file in list_of_files if (metric in file)]
     relevant_files.sort()
     return relevant_files
