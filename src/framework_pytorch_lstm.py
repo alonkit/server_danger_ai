@@ -38,10 +38,9 @@ class ExtractTensorAfterLSTM(nn.Module):
 ***********************************************************************************************************************
 """
 
-
-class LSTMPredictor(nn.Module):
-    def __init__(self, input_size, output_size):
-        super(LSTMPredictor, self).__init__()
+class Encoder(nn.Module):
+    def __init__(self, input_size, hidden):
+        super(Encoder, self).__init()
         hidden_size_for_lstm = 200
         internal_hidden_dimension = 32
         num_layers = 2
@@ -57,13 +56,25 @@ class LSTMPredictor(nn.Module):
             ExtractTensorAfterLSTM(),
             nn.Linear(
                 in_features=hidden_size_for_lstm,
-                out_features=internal_hidden_dimension
-            ),
-            nn.ReLU(),
-            nn.Linear(
-                in_features=internal_hidden_dimension,
-                out_features=output_size
+                out_features=hidden
             )
+        )
+    def forward(self, x):
+        out = self.__seq_model(x)
+        return out
+    def flatten_parameters(self):
+        self.__seq_model[0].flatten_parameters()
+
+class Decoder(nn.Module):
+
+class LSTMPredictor(nn.Module):
+    def __init__(self, input_size, output_size):
+        super(LSTMPredictor, self).__init__()
+        hidden_size_for_lstm = 200
+        
+        self.__seq_model = nn.Sequential(
+            Encoder(input_size, hidden_size_for_lstm),
+            Decoder(hidden_size_for_lstm, output_size),
         )
 
     def forward(self, x):
