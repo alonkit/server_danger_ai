@@ -40,7 +40,7 @@ class ExtractTensorAfterLSTM(nn.Module):
 
 class Encoder(nn.Module):
     def __init__(self, input_size, hidden):
-        super(Encoder, self).__init()
+        super(Encoder, self).__init__()
         hidden_size_for_lstm = 200
         internal_hidden_dimension = 32
         num_layers = 2
@@ -67,7 +67,7 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     def __init__(self, input_size, out_size):
-        super(Decoder, self).__init()
+        super(Decoder, self).__init__()
         hidden_size_for_lstm = 200
         internal_hidden_dimension = 32
         num_layers = 2
