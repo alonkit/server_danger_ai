@@ -66,7 +66,31 @@ class Encoder(nn.Module):
         self.__seq_model[0].flatten_parameters()
 
 class Decoder(nn.Module):
-
+    def __init__(self, input_size, out_size):
+        super(Decoder, self).__init()
+        hidden_size_for_lstm = 200
+        internal_hidden_dimension = 32
+        num_layers = 2
+        dropout = 0.03
+        self.__seq_model = nn.Sequential(
+            nn.LSTM(
+                input_size=input_size,
+                hidden_size=hidden_size_for_lstm,
+                num_layers=num_layers,
+                batch_first=True,
+                dropout=dropout,
+            ),
+            ExtractTensorAfterLSTM(),
+            nn.Linear(
+                in_features=hidden_size_for_lstm,
+                out_features=out_size
+            )
+        )
+    def forward(self, x):
+        out = self.__seq_model(x)
+        return out
+    def flatten_parameters(self):
+        self.__seq_model[0].flatten_parameters()
 class LSTMPredictor(nn.Module):
     def __init__(self, input_size, output_size):
         super(LSTMPredictor, self).__init__()
