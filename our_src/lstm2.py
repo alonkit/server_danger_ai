@@ -8,31 +8,6 @@ import src.pytorch__driver_for_test_bench as pytorch__driver_for_test_bench
 import torch.nn as nn
 import torch.optim as optim
 
-# """
-# ***********************************************************************************************************************
-#     ExtractTensorAfterLSTM class
-# ***********************************************************************************************************************
-# """
-
-
-# # LSTM() returns tuple of (tensor, (recurrent state))
-# class ExtractTensorAfterLSTM(nn.Module):
-#     """
-#     Helper class that allows LSTM to be used inside nn.Sequential.
-#     Usually would be out right after nn.LSTM and right before nn.Linear.
-#     """
-
-#     @staticmethod
-#     def forward(x):
-#         # Output shape (batch, features, hidden)
-#         out, (h_n, c_t) = x
-#         # assert torch.equal(h_n, out)
-#         # Reshape shape (batch, hidden)
-#         # return tensor[:, -1, :]
-#         print(out.shape)
-#         return out[:, -1, :]
-
-
 """
 ***********************************************************************************************************************
     LSTMPredictor class
