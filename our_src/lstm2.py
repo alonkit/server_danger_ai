@@ -4,7 +4,7 @@
 ***********************************************************************************************************************
 """
 
-import src.pytorch__driver_for_test_bench as pytorch__driver_for_test_bench
+import our_src.training_utils as training_utils
 import torch.nn as nn
 import torch.optim as optim
 
@@ -62,10 +62,7 @@ class Decoder(nn.Module):
 
             
     def forward(self, x, h_n, c_n):
-        print(x.shape)
-        exit()
         out = self.lstm(x,(h_n,c_n))[0]
-        print(out.shape)
         out= self.linear(out)
         return out
     def flatten_parameters(self):
@@ -75,11 +72,14 @@ class LSTMPredictor(nn.Module):
     def __init__(self, input_size, output_size):
         super(LSTMPredictor, self).__init__()
         hidden_size_for_lstm = 200
-        self.encoder = Encoder(input_size, hidden_size_for_lstm),
-        self.decoder=Decoder(hidden_size_for_lstm, output_size),
+        self.encoder = Encoder(input_size, hidden_size_for_lstm)
+        self.decoder=Decoder(hidden_size_for_lstm, output_size)
+        print(self.encoder.parameters())
+        print(self.decoder.parameters())
 
     def forward(self, x):
-        out = self.encoder
+        output, (h_n, c_n) = self.encoder(x)
+        out = self.decoder(output, h_n, c_n)
         return out
 
     def flatten_parameters(self):
@@ -97,11 +97,13 @@ class PytorchLSTMTester:
     def __init__(self, length_of_shortest_time_series, metric, app):
         # prepare parameters
         self.__msg = "[PytorchLSTMTester]"
+        
         self.__model_input_length = length_of_shortest_time_series // 2
+        self.__model_output_length = length_of_shortest_time_series // 2
         self.__model = LSTMPredictor(
             input_size=1,
             output_size=1,
-        ).to(pytorch__driver_for_test_bench.get_device())
+        ).to(training_utils.device)
         self.__optimizer = optim.Adam(self.__model.parameters(), lr=0.01)
         self.__best_model = self.__model
         self.__criterion = nn.MSELoss()
@@ -117,44 +119,23 @@ class PytorchLSTMTester:
     """
 
     def learn_from_data_set(self, training_data_set):
+        best_model =training_utils.train(
         training_data_set=training_data_set,
         model=self.__model,
         num_epochs=30,
         model_input_length=self.__model_input_length,
+        model_output_length=self.__model_output_length,
         batch_size=64,
         criterion=self.__criterion,
         optimizer=self.__optimizer
-        
-        list_of_batch = __prepare_batches(
-            training_data_set=training_data_set,
-            model_input_length=model_input_length,
-            batch_size=batch_size
-            )
-        epoch_time = 0
-        training_start_time = time.time()
-        min_sum_of_losses = float('inf')
-        best_model = copy.deepcopy(model)
-        for e in range(99999999):
-            if (e >= num_epochs) and (time.time() - training_start_time > min_training_time_in_seconds):
-                break
-            epoch_start_time = time.time()
-            sum_of_losses = __do_epoch(
-                epoch_num=e, list_of_batch=list_of_batch, training_data_set=training_data_set, optimizer=optimizer,
-                model=model, criterion=criterion
-            )
-            if sum_of_losses < min_sum_of_losses:
-                min_sum_of_losses = sum_of_losses
-                best_model = copy.deepcopy(model)
-                assert not (best_model is model)  # assert different objects
-            epoch_stop_time = time.time()
-            epoch_time = epoch_stop_time - epoch_start_time
-            avg_loss = sum_of_losses / len(list_of_batch)
-            print(__msg, f"Epoch {e + 1} done. Epoch time was {epoch_time}. Average loss for the batches in epoch is {avg_loss}")
+        )
         return best_model
 
 
     def predict(self, ts_as_df_start, how_much_to_predict):
-        self.__best_model.flatten_parameters()
+        ts_as_np = ts_as_df_start["sample"].to_numpy()
+        ts_as_tensor = (ts_as_np).to(training_utils.device)
+        
         return pytorch__driver_for_test_bench.predict(
             ts_as_df_start=ts_as_df_start, how_much_to_predict=how_much_to_predict, best_model=self.__best_model
         )
