@@ -192,7 +192,6 @@ class TestBench:
         assert isinstance(returned_ts_as_np_array, np.ndarray)
         assert len(returned_ts_as_np_array) == how_much_to_predict
         assert returned_ts_as_np_array.shape == (how_much_to_predict,)
-        assert returned_ts_as_np_array.dtype == np.float64
         # plot if needed
         if should_print:
             plot_result(

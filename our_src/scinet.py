@@ -9,110 +9,13 @@ import torch.nn as nn
 import torch.optim as optim
 import torch
 import numpy as np
-
+from SCINet.models import SCINet
 """
 ***********************************************************************************************************************
     LSTMPredictor class
 ***********************************************************************************************************************
 """
-
-class Encoder(nn.Module):
-    def __init__(self, input_size, hidden_size_for_lstm):
-        super(Encoder, self).__init__()
-        internal_hidden_dimension = 32
-        num_layers = 2
-        dropout = 0.03
-        self.lstm = nn.LSTM(
-                input_size=input_size,
-                hidden_size=hidden_size_for_lstm,
-                num_layers=num_layers,
-                batch_first=True,
-                dropout=dropout,
-            )
-        # self.linear = nn.Linear(
-        #         in_features=hidden_size_for_lstm,
-        #         out_features=hidden
-        #     )
         
-    def forward(self, x):
-        output, (h_n, c_n) = self.lstm(x)
-        # h_n = self.linear(h_n) #N*hidden
-        return output, (h_n, c_n)
-    
-    def flatten_parameters(self):
-        self.__seq_model[0].flatten_parameters()
-
-class Decoder(nn.Module):
-    def __init__(self, input_size,hidden_size_for_lstm , out_size):
-        super(Decoder, self).__init__()
-        num_layers = 2
-        dropout = 0.03
-        self.lstm = nn.LSTM(
-                input_size=input_size,
-                hidden_size=hidden_size_for_lstm,
-                num_layers=num_layers,
-                batch_first=True,
-                dropout=dropout,
-            )
-        self.linear = nn.Linear(
-                in_features=hidden_size_for_lstm,
-                out_features=out_size
-            )
-
-            
-    def forward(self, x, h_n, c_n):
-        out = self.lstm(x,(h_n,c_n))[0]
-        out= self.linear(out)
-        return out
-    
-    def predict(self, x_0, h_0, c_0, prediction_len):
-        # print('decoder', x_0.shape)
-        x_i=x_0
-        h_i, c_i = h_0, c_0 
-        output=[]
-        for i in range(prediction_len):
-            x_i, (h_i, c_i) = self.lstm(x_i, (h_i, c_i))
-            x_i = self.linear(x_i)
-            # print(x_i.shape, h_i.shape, c_i.shape)
-            output.append(x_i.squeeze(1).squeeze(1))
-        return torch.cat(output,dim=0)
-            
-    def flatten_parameters(self):
-        self.__seq_model[0].flatten_parameters()
-        
-class LSTMPredictor(nn.Module):
-    def __init__(self, input_size, output_size):
-        super(LSTMPredictor, self).__init__()
-        hidden_size_for_lstm = 256
-        self.encoder = Encoder(input_size, hidden_size_for_lstm)
-        self.decoder=Decoder(input_size,hidden_size_for_lstm, output_size)
-        print(self.encoder.parameters())
-        print(self.decoder.parameters())
-
-    def forward(self, x,y):
-        y = y.unsqueeze(-1)
-        # print(f'x={x.shape} , y={y.shape}')
-        output, (h_n, c_n) = self.encoder(x)
-        # print(f'h={h_n.shape} , c={c_n.shape}')
-        out = self.decoder(torch.cat([x[:,-1:],y[:,:-1]],dim=1), h_n, c_n).squeeze(-1)
-        # print(f'out={out.shape}')
-        
-        return out
-
-    def predict(self,x, prediction_len):
-        with torch.no_grad():
-            x = torch.from_numpy(x).to(torch.float32).to(training_utils.device).unsqueeze(0).unsqueeze(-1)
-            _, (h_n, c_n) = self.encoder(x)
-            x_0=x[:,-1:]
-            y = self.decoder.predict(x_0, h_n, c_n,prediction_len).numpy()
-            y.astype(np.float64)
-        return y
-        
-    
-    def flatten_parameters(self):
-        self.__seq_model[0].flatten_parameters()
-
-
 """
 ***********************************************************************************************************************
     Testable class
@@ -120,17 +23,31 @@ class LSTMPredictor(nn.Module):
 """
 
 
-class PytorchLSTMTester:
+class PytorchSCITester:
     def __init__(self, length_of_shortest_time_series, metric, app):
         # prepare parameters
         self.__msg = "[PytorchLSTMTester]"
-        
-        self.__model_input_length = length_of_shortest_time_series // 2
-        self.__model_output_length = length_of_shortest_time_series // 2
-        self.__model = LSTMPredictor(
-            input_size=1,
-            output_size=1,
+        self.__model_input_length = 12
+        self.__model_output_length = 12
+        assert self.__model_output_length + self.__model_input_length <= length_of_shortest_time_series
+        self.__model = SCINet(
+                output_len= self.__model_output_length,
+                input_len= self.__model_input_length,
+                input_dim=1,
+                hid_size = 0.0625,
+                num_stacks= 1,
+                num_levels= 2,
+                num_decoder_layer= 1,
+                concat_len = 0,
+                groups = 1,
+                kernel = 5,
+                dropout = 0.5,
+                single_step_output_One = 0,
+                positionalE = True,
+                modified = True,
+                RIN=False
         ).to(training_utils.device)
+        
         self.__optimizer = optim.Adam(self.__model.parameters(), lr=0.01)
         self.__best_model = self.__model
         self.__criterion = nn.MSELoss()
@@ -161,7 +78,7 @@ class PytorchLSTMTester:
 
     def predict(self, ts_as_df_start, how_much_to_predict):
         x =ts_as_df_start['sample'].to_numpy()
-        return self.__model.predict(x, how_much_to_predict)
+        return self.__model(x)
 
 
 """

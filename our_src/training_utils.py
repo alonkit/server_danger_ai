@@ -24,7 +24,7 @@ def train(training_data_set, model, num_epochs, model_input_length, model_output
         for batch_data in list_of_batch:
             train_input, train_target = batch_data
             optimizer.zero_grad()
-            out = model.forward(x=train_input)
+            out = model.forward(x=train_input, y=train_target)
             loss = criterion(out, train_target)
             # loss_array[true_if_pad] = 0
             # loss = loss_array.sum() / false_if_pad.sum()
