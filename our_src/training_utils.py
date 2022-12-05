@@ -4,6 +4,7 @@ import time
 import copy
 import random
 import math
+import matplotlib.pyplot as plt
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -21,11 +22,20 @@ def train(training_data_set, model, num_epochs, model_input_length, model_output
     for e in range(num_epochs):
         epoch_start_time = time.time()
         sum_of_losses = 0
+        print_one=True
         for batch_data in list_of_batch:
             train_input, train_target = batch_data
+            
             optimizer.zero_grad()
-            out = model.forward(x=train_input, y=train_target)
-            loss = criterion(out, train_target)
+            out = model.forward(x=train_input.clone())
+            if print_one:
+                out_d = out.detach()
+                print_one=False
+                i=0
+                plt.plot(range(model_input_length+model_output_length), list(train_input[i,:,0])+list(train_target[i,:]))
+                plt.plot(range(model_input_length,model_input_length+model_output_length), list(out_d[i,:,0]))
+                plt.show()
+            loss = criterion(out, train_target.unsqueeze(-1))
             # loss_array[true_if_pad] = 0
             # loss = loss_array.sum() / false_if_pad.sum()
             loss.backward()

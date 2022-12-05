@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch
 import numpy as np
-from SCINet.models import SCINet
+from SCINet.models.SCINet import SCINet
 """
 ***********************************************************************************************************************
     LSTMPredictor class
@@ -27,14 +27,14 @@ class PytorchSCITester:
     def __init__(self, length_of_shortest_time_series, metric, app):
         # prepare parameters
         self.__msg = "[PytorchLSTMTester]"
-        self.__model_input_length = 12
-        self.__model_output_length = 12
+        self.__model_input_length = 40
+        self.__model_output_length = 20
         assert self.__model_output_length + self.__model_input_length <= length_of_shortest_time_series
         self.__model = SCINet(
                 output_len= self.__model_output_length,
                 input_len= self.__model_input_length,
                 input_dim=1,
-                hid_size = 0.0625,
+                hid_size = 256,
                 num_stacks= 1,
                 num_levels= 2,
                 num_decoder_layer= 1,
@@ -48,12 +48,14 @@ class PytorchSCITester:
                 RIN=False
         ).to(training_utils.device)
         
-        self.__optimizer = optim.Adam(self.__model.parameters(), lr=0.01)
+        self.__optimizer = optim.Adam(self.__model.parameters(), lr=0.0005)
+        self.__scheduler = optim.lr_scheduler.ExponentialLR(self.__optimizer, gamma=0.9)
         self.__best_model = self.__model
         self.__criterion = nn.MSELoss()
         # print
         print(self.__msg, f"model = {self.__model}")
         print(self.__msg, f"optimizer = {self.__optimizer}")
+        print(self.__msg, f"optimizer = {self.__scheduler}")
         print(self.__msg, f"criterion = {self.__criterion}")
 
     """
@@ -66,10 +68,10 @@ class PytorchSCITester:
         best_model =training_utils.train(
         training_data_set=training_data_set,
         model=self.__model,
-        num_epochs=3,
+        num_epochs=30,
         model_input_length=self.__model_input_length,
         model_output_length=self.__model_output_length,
-        batch_size=64,
+        batch_size=32,
         criterion=self.__criterion,
         optimizer=self.__optimizer
         )
@@ -78,7 +80,13 @@ class PytorchSCITester:
 
     def predict(self, ts_as_df_start, how_much_to_predict):
         x =ts_as_df_start['sample'].to_numpy()
-        return self.__model(x)
+        with torch.no_grad():
+            x = torch.from_numpy(x).to(torch.float32).to(training_utils.device).unsqueeze(0).unsqueeze(-1)
+            x = x[:,-self.__model_input_length:,:]
+            y = self.__model(x)
+            y = y.squeeze(0).squeeze(-1).numpy()
+            y.astype(np.float64)
+        return y
 
 
 """
